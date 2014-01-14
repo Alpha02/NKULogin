@@ -1,12 +1,16 @@
 import urllib
 import http
+import re
 from http import client
 from PyQt4 import QtCore, QtGui
-from PyQt4 import QtWebKit
+from PyQt4.QtGui import *
 import subprocess
 import time
+import threading
 class logger():
     logined=0
+    status_str=''
+    status_int=0
     infos={
     'user':'1210483', 
     'password':'303018', 
@@ -48,33 +52,32 @@ class logger():
         self.changeInfos('valicode', value)
     
     def init(self):
-        self.target_ui.reportStatus('建立HTTP连接....', 10)
+        self.reportStatus('建立HTTP连接....', 10)
         con=http.client.HTTPConnection(self.url)
         con.request('GET',url='/',headers=self.headers)
         res=con.getresponse()
         data=res.read()
-        con.close()
-        self.target_ui.reportStatus('获取Cookie....', 30)
+        self.reportStatus('获取Cookie....', 30)
         if res.getheader('Set-Cookie')!=None:                               #判断是否存在Set-Cookie，有的话，将cookie保存起来
            cj=res.getheader('Set-Cookie').split(';')[0]
            self.headers['Cookie']=cj
            self.headers2['Cookie']=cj
         else:
            print('got no cookie')
-        self.target_ui.reportStatus('获取验证码....', 50)
+        self.reportStatus('获取验证码....', 50)
         con=http.client.HTTPConnection(self.url)
         con.request('GET',url='/ValidateCode',headers=self.headers)
-        res=con.getresponse()
-        data=res.read()
+        data=con.getresponse().read()
         con.close()
-        self.target_ui.reportStatus('保存验证码', 80)
-        f = open('VC.bmp','wb')
+        self.reportStatus('保存验证码', 80)
+        f = open('VC.jpg','wb')
         f.write(data)
         f.close()
-        self.target_ui.reportStatus('Hehe开发', 100)
+        self.reportStatus('Hehe开发', 100)
         #subprocess.Popen('VC.bmp',stdout=subprocess.PIPE,shell=True).stdout.readlines()
-        #self.target_ui.webview.load(QtCore.QUrl(_fromUtf8("http://www.baidu.com")))
-        self.target_ui.webView.load(QtCore.QUrl("VC.bmp"))
+        tg=self.target_ui.imageLabel
+        tg.setPixmap(QPixmap("VC"))
+
     def login(self):
         data={'checkcode_text':self.infos['valicode'],
                 'operation':'',
@@ -84,10 +87,9 @@ class logger():
         postdata=urllib.parse.urlencode(data)
         print(self.infos['valicode'])
         con=http.client.HTTPConnection(self.url)
-        self.target_ui.reportStatus('正在登陆....', 10)
+        self.reportStatus('正在登陆....', 10)
         con.request('POST','/stdloginAction.do',postdata,self.headers2)
-        res=con.getresponse()
-        data=res.read()
+        data=con.getresponse().read()
         con.close()
         print('Loggined')
         self.logined=1
@@ -95,23 +97,20 @@ class logger():
         if self.logined==0: 
             self.login()
         con=http.client.HTTPConnection(self.url)
-        import re
-        self.target_ui.reportStatus('获取学业警示....', 20)
+        self.reportStatus('获取学业警示....', 20)
         con.request('GET','/xsxk/scoreAlarmAction.do',headers=self.headers)
-        res=con.getresponse()
-        data=res.read().decode('gbk') 
-        con.close()
+        data=con.getresponse().read().decode('gbk') 
+        
         GPA_alarm_list=re.findall('(<p align="center">(.*\n)*?</table>)',data)
         GPA_alarm=GPA_alarm_list[0][0]+GPA_alarm_list[1][0]+'\r\n'
         
-        self.target_ui.reportStatus('获取GPA....', 30)
+        self.reportStatus('获取GPA....', 30)
         
         con.request('GET','/xsxk/studiedAction.do',headers=self.headers)
-        res=con.getresponse()
-        data=res.read().decode('gbk')
+        data=con.getresponse().read().decode('gbk')
         
-        con.close()
-        self.target_ui.reportStatus('获取页数...', 35)
+        
+        self.reportStatus('获取页数...', 35)
 
         m_obj=re.search('共 (.) 页', data)
         GPA_count=' '.join(re.findall('(\\[.*?类课.*?\\])',data))
@@ -119,7 +118,7 @@ class logger():
         page_index=0
         self.headers['Referer']='http://222.30.32.10/xsxk/studiedAction.do'
         course_index_all=0
-        self.target_ui.reportStatus('创建HTML...', 40)
+        self.reportStatus('创建HTML...', 40)
         f = open('score.html','w')
         f.write('<html>'+GPA_alarm)  
         f.write(GPA_count) 
@@ -132,82 +131,83 @@ class logger():
   
             final_course_list={}
             for each_course in all_courses:
-                self.target_ui.reportStatus('获取课程%s...'%course_index_all, 40+60*(page_index+course_index_page/len(all_courses))/page_numbers)
-                time.sleep(0.05)
+                self.reportStatus('获取课程%s...'%course_index_all, 40+60*(page_index+course_index_page/len(all_courses))/page_numbers)
+                time.sleep(0.01)
                 final_course_list[course_index_all]=re.findall('<td align="center" class="NavText">(.*?)\r\n *\t\t</td>\r\n *\t\t',all_courses[course_index_page][0])
                 f.write('<tr bgcolor="#FFFFFF">')
                 for data_idx in range(len(final_course_list[course_index_all])):
                     f.write('<td>%s</td>'%(final_course_list[course_index_all][data_idx]))
-                    
                 f.write('</tr>')
                 course_index_page+=1
                 course_index_all+=1
                 
             con.request('GET','/xsxk/studiedPageAction.do?page=next',headers=self.headers)
-            res=con.getresponse()
-            data=res.read().decode('gbk')    
+            data=con.getresponse().read().decode('gbk')    
         self.headers.pop('Referer')
-        self.target_ui.reportStatus('就绪', 100)
+        self.reportStatus('就绪', 100)
         f.write('</table></html>')
         f.close() 
         subprocess.Popen('score.html',stdout=subprocess.PIPE,shell=True)  
         
-        
+    def getScoreThread(self):
+        t=threading.Thread(target=self.getScore)
+        t.start()
         
     def evaluateTeacher(self):
         if self.logined==0: 
             self.login()
         con=http.client.HTTPConnection(self.url)
-        self.target_ui.reportStatus('获取课程数....', 15)
+        self.reportStatus('获取课程数....', 15)
         con.request('GET','/evaluate/stdevatea/queryCourseAction.do',headers=self.headers)
-        res=con.getresponse()
-        data=res.read().decode('gbk')
-        con.close()
-        import re
+        data=con.getresponse().read().decode('gbk')
         all_course_index= re.findall('<td class=\\"NavText\\"><a href=\\"queryTargetAction.do\\?operation=target&amp;index=(.)\\">',data)
         course_number=int(max(all_course_index))+1
-        self.target_ui.reportStatus('你有%d门课程,请耐心等待'%course_number, 20)
+        self.reportStatus('你有%d门课程,请耐心等待'%course_number, 20)
         value=0
         con=http.client.HTTPConnection(self.url)
         format='/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
         con.request('GET',format%value,headers=self.headers)
-        res=con.getresponse()
-        temp_data=res.read().decode('gbk')
-        con.close()
-        self.target_ui.reportStatus('获取评价项...', 25)
+        temp_data=con.getresponse().read().decode('gbk')
+        self.reportStatus('获取评价项...', 25)
         post_value=re.findall('<select name=\\"(array\\[.*?\\])\\" style=\\"width:110px\\"><option value=\\"null\\">&nbsp;</option>\r\n\t\t<option value=\\"(.*?)\\"',temp_data)
         post_dict={'opinion':'Good!','operation':'Store'}
         post_index=0
-        self.target_ui.reportStatus('创建报表...', 30)
+        self.reportStatus('创建报表...', 30)
         for i in post_value:
             post_dict[post_value[post_index][0]]=post_value[post_index][1]
             post_index+=1
 
         postdata=urllib.parse.urlencode(post_dict)
-        self.headers2["Content-Length"]="851"       
+        self.headers2["Content-Length"]="851"    
         for idx in all_course_index: 
-            #con=http.client.HTTPConnection(self.url)
-            #format='/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
-            #con.request('GET',format%value,headers=self.headers)
-            #res=con.getresponse()
-            #con.close()
-            format='http://222.30.32.10/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
-            self.headers2['Referer']=format % value
+            con.close()
             con=http.client.HTTPConnection(self.url)
+            format='/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
+            con.request('GET',format%idx,headers=self.headers)
+            #con.getresponse()
+            con.close()
+            con=http.client.HTTPConnection(self.url)
+            format='http://222.30.32.10/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
+            self.headers2['Referer']=format % idx
             format='/evaluate/stdevatea/queryTargetAction.do'
-            self.target_ui.reportStatus('正在评价第%s门课...'%idx, 30+70*int(idx)/course_number)
-            time.sleep(0.2)
+            self.reportStatus('正在评价第%s门课...'%idx, 30+70*int(idx)/course_number)
+            time.sleep(0.01)
             con.request('POST',format, postdata, self.headers2 )
-            res=con.getresponse()
-            con.close()    
-            #self.headers2["Referer"]='http://222.30.32.10/'  
+            #con.getresponse()
+        
         self.headers2["Content-Length"]="97"    
-        self.target_ui.reportStatus('就绪', 100)
+        self.reportStatus('就绪', 100)
+        con.close()
         
+    def evaluateTeacherThread(self):
+        t=threading.Thread(target=self.evaluateTeacher)        
+        t.start()      
         
-        
-        
-        
+    def reportStatus(self, string, value):
+        print('report')
+        self.status_str=string
+        self.status_int=value
+        self.target_ui.eventGen.emit(QtCore.SIGNAL('reportStatus'))
         
         
         

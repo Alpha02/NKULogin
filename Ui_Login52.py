@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
-import web_logger
-import threading
-from PyQt4 import QtCore, QtGui
 
-myLogger=web_logger.logger()
-
-
-# Form implementation generated from reading ui file 'E:\Linhehe\Python\EricWorkspace\Login5.ui'
+# Form implementation generated from reading ui file 'E:\Linhehe\Python\EricWorkspace\Login52.ui'
 #
-# Created: Mon Jan 13 22:57:07 2014
+# Created: Wed Jan 15 03:24:58 2014
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
+from PyQt4 import QtCore, QtGui
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -30,11 +24,6 @@ except AttributeError:
         return QtGui.QApplication.translate(context, text, disambig)
 
 class Ui_Dialog(object):
-
-    def reportStatusReceived(self):
-            self.label_status.setText(_translate("Dialog", myLogger.status_str, None))
-            self.progressBar.setProperty("value", myLogger.status_int)
-            print('report')
     def setupUi(self, Dialog):
         Dialog.setObjectName(_fromUtf8("Dialog"))
         Dialog.setWindowModality(QtCore.Qt.NonModal)
@@ -671,7 +660,7 @@ class Ui_Dialog(object):
         self.label_valicode.setGeometry(QtCore.QRect(10, 70, 41, 16))
         self.label_valicode.setObjectName(_fromUtf8("label_valicode"))
         self.progressBar = QtGui.QProgressBar(Dialog)
-        self.progressBar.setEnabled(False)
+        self.progressBar.setEnabled(True)
         self.progressBar.setGeometry(QtCore.QRect(10, 120, 241, 16))
         self.progressBar.setProperty("value", 24)
         self.progressBar.setTextVisible(True)
@@ -686,24 +675,20 @@ class Ui_Dialog(object):
         self.label_status.setScaledContents(False)
         self.label_status.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
         self.label_status.setObjectName(_fromUtf8("label_status"))
-        self.imageLabel = QtGui.QLabel(Dialog)
-        self.imageLabel.setGeometry(QtCore.QRect(100, 70, 151, 21))
-        self.imageLabel.setObjectName(_fromUtf8("imageLabel"))
-        self.eventGen=QtCore.QObject()
-        
+        self.graphicsView = QtGui.QGraphicsView(Dialog)
+        self.graphicsView.setGeometry(QtCore.QRect(100, 70, 151, 21))
+        self.graphicsView.setObjectName(_fromUtf8("graphicsView"))
+
         self.retranslateUi(Dialog)
-    
-        QtCore.QObject.connect(self.pushButton_cryForGPA, QtCore.SIGNAL(_fromUtf8("clicked()")), myLogger.getScoreThread)
-        QtCore.QObject.connect(self.pushButton_fuckTeachers, QtCore.SIGNAL(_fromUtf8("clicked()")), myLogger.evaluateTeacherThread)
-        QtCore.QObject.connect(self.lineEdit_user, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), myLogger.changeUser)
-        QtCore.QObject.connect(self.lineEdit_password, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), myLogger.changePassword)
-        QtCore.QObject.connect(self.lineEdit_valicode, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), myLogger.changeValicode)
-        QtCore.QObject.connect(self.eventGen, QtCore.SIGNAL("reportStatus"), self.reportStatusReceived)
+        QtCore.QObject.connect(self.pushButton_cryForGPA, QtCore.SIGNAL(_fromUtf8("clicked()")), Dialog.accept)
+        QtCore.QObject.connect(self.lineEdit_user, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), Dialog.update)
+        QtCore.QObject.connect(self.lineEdit_password, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), Dialog.update)
+        QtCore.QObject.connect(self.lineEdit_valicode, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), Dialog.update)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(_translate("Dialog", "NKU选课系统客户端", None))
-        self.pushButton_cryForGPA.setToolTip(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
+        self.pushButton_cryForGPA.setToolTip(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", "一键查询所有课成绩、总学分、已获得/未获得学分"))
         self.pushButton_cryForGPA.setStatusTip(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
         self.pushButton_cryForGPA.setWhatsThis(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
         self.pushButton_cryForGPA.setAccessibleName(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
@@ -733,19 +718,15 @@ class Ui_Dialog(object):
         self.lineEdit_valicode.setAccessibleName(_translate("Dialog", "输入图片中的数字", None))
         self.lineEdit_valicode.setAccessibleDescription(_translate("Dialog", "输入图片中的数字", None))
         self.label_valicode.setText(_translate("Dialog", "验证码", None))
-        self.label_status.setText(_translate("Dialog", "Hehe设计", None))
-        self.imageLabel.setText(_translate("Dialog", "Hehe设计", None))
+        self.label_status.setText(_translate("Dialog", "TextLabel", None))
+
 
 if __name__ == "__main__":
     import sys
-    lock=threading.Lock()
     app = QtGui.QApplication(sys.argv)
     Dialog = QtGui.QDialog()
-    myLogger.target_ui = Ui_Dialog()
-    myLogger.target_ui.setupUi(Dialog)
+    ui = Ui_Dialog()
+    ui.setupUi(Dialog)
     Dialog.show()
-    myLogger.init()
-    #myLogger.init()
-    
     sys.exit(app.exec_())
 

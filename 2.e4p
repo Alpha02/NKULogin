@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric5 project file for project 2 -->
-<!-- Saved: 2014-01-14, 21:07:11 -->
+<!-- Saved: 2014-01-15, 03:23:50 -->
 <!-- Copyright (C) 2014 ,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -12,12 +12,8 @@
   <Version>0.1</Version>
   <Author></Author>
   <Email></Email>
-  <Sources>
-    <Source>Ui_Login52.py</Source>
-  </Sources>
-  <Forms>
-    <Form>Login52.ui</Form>
-  </Forms>
+  <Sources/>
+  <Forms/>
   <Translations/>
   <Resources/>
   <Interfaces/>
