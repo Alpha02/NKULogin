@@ -40,6 +40,12 @@ class logger():
     'Cache-Control':'no-cache'
     };
     url = "222.30.32.10"
+    def setContentLength(self, type):
+        if type==0:
+            self.headers2['Content-Length']=str(80+len(self.infos['password'])+len(self.infos['user'])+len(self.infos['valicode']))    
+        else:
+            self.headers2['Content-Length']=str(851)
+            
     def changeInfos(self, name, value):
         self.infos[name]=value
         print(self.infos)
@@ -56,6 +62,7 @@ class logger():
         self.changeInfos('valicode', value)
     
     def init(self):
+
         self.reportStatus('建立HTTP连接....', 10)
         self.target_ui.lineEdit_valicode.setProperty('enabled', 'False')
         con=http.client.HTTPConnection(self.url)    
@@ -95,6 +102,7 @@ class logger():
         postdata=urllib.parse.urlencode(data)
         con=http.client.HTTPConnection(self.url)
         self.reportStatus('正在登录....', 10)
+        self.setContentLength(0)
         con.request('POST','/stdloginAction.do',postdata,self.headers2)
         data=con.getresponse().read().decode('gbk')
         con.close()
@@ -213,7 +221,7 @@ class logger():
             post_index+=1
 
         postdata=urllib.parse.urlencode(post_dict)
-        self.headers2["Content-Length"]="851"
+        self.setContentLength(1)
 
         for idx in all_course_index: 
             
@@ -231,7 +239,7 @@ class logger():
             con.request('POST',format, postdata, self.headers2 )
             con.getresponse()
             
-        self.headers2["Content-Length"]="97"    
+        self.setContentLength(0) 
         self.reportStatus('就绪', 100)
         con.close()
         self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'True')
