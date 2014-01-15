@@ -7,6 +7,7 @@ from PyQt4.QtGui import *
 import subprocess
 import time
 import threading
+import os
 class logger():
     logined=0
     status_str=''
@@ -41,10 +42,13 @@ class logger():
     url = "222.30.32.10"
     def changeInfos(self, name, value):
         self.infos[name]=value
+        print(self.infos)
     
     def changeUser(self, value):
         self.changeInfos('user', value)
-    
+        if(self.logined):
+            self.logined=0
+            self.init()
     def changePassword(self, value):
         self.changeInfos('password', value)
         
@@ -53,9 +57,11 @@ class logger():
     
     def init(self):
         self.reportStatus('建立HTTP连接....', 10)
-        con=http.client.HTTPConnection(self.url)
+        self.target_ui.lineEdit_valicode.setProperty('enabled', 'False')
+        con=http.client.HTTPConnection(self.url)    
         con.request('GET',url='/',headers=self.headers)
         res=con.getresponse()
+        con.close()
         data=res.read()
         self.reportStatus('获取Cookie....', 30)
         if res.getheader('Set-Cookie')!=None:                               #判断是否存在Set-Cookie，有的话，将cookie保存起来
@@ -70,14 +76,16 @@ class logger():
         data=con.getresponse().read()
         con.close()
         self.reportStatus('保存验证码', 80)
-        f = open('VC.jpg','wb')
+        f = open('validate_code','wb')
         f.write(data)
         f.close()
         self.reportStatus('Hehe开发', 100)
+        self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'True')
+        self.target_ui.pushButton_cryForGPA.setProperty('enabled', 'True')  
         #subprocess.Popen('VC.bmp',stdout=subprocess.PIPE,shell=True).stdout.readlines()
-        tg=self.target_ui.imageLabel
-        tg.setPixmap(QPixmap("VC"))
-
+        self.showValicode()
+        self.target_ui.lineEdit_valicode.setProperty('enabled', 'True')
+        return 1
     def login(self):
         data={'checkcode_text':self.infos['valicode'],
                 'operation':'',
@@ -85,17 +93,31 @@ class logger():
                 'usercode_text':self.infos['user'],
                 'userpwd_text':self.infos['password']}
         postdata=urllib.parse.urlencode(data)
-        print(self.infos['valicode'])
         con=http.client.HTTPConnection(self.url)
-        self.reportStatus('正在登陆....', 10)
+        self.reportStatus('正在登录....', 10)
         con.request('POST','/stdloginAction.do',postdata,self.headers2)
-        data=con.getresponse().read()
+        data=con.getresponse().read().decode('gbk')
         con.close()
-        print('Loggined')
-        self.logined=1
+        tmp=re.search('<LI>(.*)',data) 
+        if tmp:
+            #if the login is failed
+            self.reportStatus(tmp.group(1), 0)
+            time.sleep(1)
+            self.init()
+            
+            return False
+        else:
+            self.logined=1
+            return True
+            
     def getScore(self):
+        self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'False')
+        self.target_ui.pushButton_cryForGPA.setProperty('enabled', 'False')        
         if self.logined==0: 
-            self.login()
+            if not self.login():
+                return False
+
+
         con=http.client.HTTPConnection(self.url)
         self.reportStatus('获取学业警示....', 20)
         con.request('GET','/xsxk/scoreAlarmAction.do',headers=self.headers)
@@ -132,7 +154,6 @@ class logger():
             final_course_list={}
             for each_course in all_courses:
                 self.reportStatus('获取课程%s...'%course_index_all, 40+60*(page_index+course_index_page/len(all_courses))/page_numbers)
-                time.sleep(0.01)
                 final_course_list[course_index_all]=re.findall('<td align="center" class="NavText">(.*?)\r\n *\t\t</td>\r\n *\t\t',all_courses[course_index_page][0])
                 f.write('<tr bgcolor="#FFFFFF">')
                 for data_idx in range(len(final_course_list[course_index_all])):
@@ -149,13 +170,27 @@ class logger():
         f.close() 
         subprocess.Popen('score.html',stdout=subprocess.PIPE,shell=True)  
         
+        self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'True')
+        self.target_ui.pushButton_cryForGPA.setProperty('enabled', 'True')
+        time.sleep(1)
+        try:
+            os.remove('score.html')
+        except Exception as ex:
+            print(ex)
+            
+        return True
+        
     def getScoreThread(self):
         t=threading.Thread(target=self.getScore)
         t.start()
-        
     def evaluateTeacher(self):
+        self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'False')
+        self.target_ui.pushButton_cryForGPA.setProperty('enabled', 'False')        
         if self.logined==0: 
-            self.login()
+            if not self.login():
+                return False
+
+
         con=http.client.HTTPConnection(self.url)
         self.reportStatus('获取课程数....', 15)
         con.request('GET','/evaluate/stdevatea/queryCourseAction.do',headers=self.headers)
@@ -178,37 +213,40 @@ class logger():
             post_index+=1
 
         postdata=urllib.parse.urlencode(post_dict)
-        self.headers2["Content-Length"]="851"    
+        self.headers2["Content-Length"]="851"
+
         for idx in all_course_index: 
+            
             con.close()
             con=http.client.HTTPConnection(self.url)
             format='/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
             con.request('GET',format%idx,headers=self.headers)
-            #con.getresponse()
+            con.getresponse()
             con.close()
             con=http.client.HTTPConnection(self.url)
             format='http://222.30.32.10/evaluate/stdevatea/queryTargetAction.do?operation=target&index=%s'
             self.headers2['Referer']=format % idx
             format='/evaluate/stdevatea/queryTargetAction.do'
             self.reportStatus('正在评价第%s门课...'%idx, 30+70*int(idx)/course_number)
-            time.sleep(0.01)
             con.request('POST',format, postdata, self.headers2 )
-            #con.getresponse()
-        
+            con.getresponse()
+            
         self.headers2["Content-Length"]="97"    
         self.reportStatus('就绪', 100)
         con.close()
-        
+        self.target_ui.pushButton_fuckTeachers.setProperty('enabled', 'True')
+        self.target_ui.pushButton_cryForGPA.setProperty('enabled', 'True')   
     def evaluateTeacherThread(self):
         t=threading.Thread(target=self.evaluateTeacher)        
-        t.start()      
-        
+        t.start()          
     def reportStatus(self, string, value):
         print('report')
         self.status_str=string
         self.status_int=value
         self.target_ui.eventGen.emit(QtCore.SIGNAL('reportStatus'))
-        
+    def showValicode(self):
+        print('change')
+        self.target_ui.eventGen.emit(QtCore.SIGNAL('showValicode(QString)'), 'validate_code')        
         
         
         

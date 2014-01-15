@@ -2,6 +2,7 @@
 import web_logger
 import threading
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import *
 
 myLogger=web_logger.logger()
 
@@ -34,7 +35,11 @@ class Ui_Dialog(object):
     def reportStatusReceived(self):
             self.label_status.setText(_translate("Dialog", myLogger.status_str, None))
             self.progressBar.setProperty("value", myLogger.status_int)
-            print('report')
+            print('report_received')
+    def valicodeReceived(self, str):
+            self.imageLabel.setPixmap(QPixmap(str))
+            self.imageLabel.repaint()
+            print('change_received')
     def setupUi(self, Dialog):
         Dialog.setObjectName(_fromUtf8("Dialog"))
         Dialog.setWindowModality(QtCore.Qt.NonModal)
@@ -699,10 +704,11 @@ class Ui_Dialog(object):
         QtCore.QObject.connect(self.lineEdit_password, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), myLogger.changePassword)
         QtCore.QObject.connect(self.lineEdit_valicode, QtCore.SIGNAL(_fromUtf8("textChanged(QString)")), myLogger.changeValicode)
         QtCore.QObject.connect(self.eventGen, QtCore.SIGNAL("reportStatus"), self.reportStatusReceived)
+        QtCore.QObject.connect(self.eventGen, QtCore.SIGNAL("showValicode(QString)"), self.valicodeReceived)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(_translate("Dialog", "NKU选课系统客户端", None))
+        Dialog.setWindowTitle(_translate("Dialog", "NKU教务系统客户端", None))
         self.pushButton_cryForGPA.setToolTip(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
         self.pushButton_cryForGPA.setStatusTip(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
         self.pushButton_cryForGPA.setWhatsThis(_translate("Dialog", "一键查询所有课成绩、总学分、已获得/未获得学分", None))
@@ -735,16 +741,16 @@ class Ui_Dialog(object):
         self.label_valicode.setText(_translate("Dialog", "验证码", None))
         self.label_status.setText(_translate("Dialog", "Hehe设计", None))
         self.imageLabel.setText(_translate("Dialog", "Hehe设计", None))
-
 if __name__ == "__main__":
     import sys
-    lock=threading.Lock()
+
     app = QtGui.QApplication(sys.argv)
     Dialog = QtGui.QDialog()
     myLogger.target_ui = Ui_Dialog()
     myLogger.target_ui.setupUi(Dialog)
     Dialog.show()
-    myLogger.init()
+    while not myLogger.init():
+        print('Retry')
     #myLogger.init()
     
     sys.exit(app.exec_())
